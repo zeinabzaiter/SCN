@@ -4,8 +4,8 @@ import pandas as pd
 import plotly.express as px
 
 # Chargement des données
-df_resistance = pd.read_csv("data/weekly_resistance.csv")
-df_phenotypes = pd.read_csv("data/phenotype_weekly.csv")
+df_resistance = pd.read_csv("weekly_resistance.csv")
+df_phenotypes = pd.read_csv("phenotype_weekly.csv")
 
 st.title("Dashboard de Résistance Antibiotique - SCN (hors aureus)")
 
@@ -27,6 +27,8 @@ fig.add_scatter(x=alertes["Semaine"], y=alertes["%R"],
 st.plotly_chart(fig, use_container_width=True)
 
 # ----- Section 2 : Phénotypes -----
+Correction des chemins de fichiers CSV
+
 st.header("Phénotypes SCN par semaine")
 
 df_phenotypes = df_phenotypes.set_index("Semaine")
