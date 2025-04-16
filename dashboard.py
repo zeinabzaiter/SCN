@@ -1,11 +1,11 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.express as px
 import numpy as np
 
 # Chargement des fichiers de données
 phenotype_df = pd.read_csv("phenotype_weekly.csv")
-resistance_df = pd.read_excel("Tests_Resistances_mensuelles_FINAL.xlsx")
+resistance_df = pd.read_excel("Tests_Resistances_mensuelles_FINAL.xlsx", engine="openpyxl")
 
 # Titre du Dashboard
 st.title("📊 Dashboard de Suivi des Phénotypes et Résistances Antibiotiques")
@@ -14,15 +14,21 @@ st.markdown("---")
 
 # --- SECTION 1: Evolution hebdomadaire des phénotypes ---
 st.subheader("🕰️ Evolution hebdomadaire des phénotypes")
-fig1, ax1 = plt.subplots()
-for col in ["SRM", "SRV", "Wild", "Other"]:
-    ax1.plot(phenotype_df["Semaine"], phenotype_df[col], marker="o", label=col)
-ax1.set_xlabel("Semaine")
-ax1.set_ylabel("Nombre de cas")
-ax1.set_title("Evolution des phénotypes par semaine")
-plt.xticks(rotation=45)
-ax1.legend()
-st.pyplot(fig1)
+
+# Transformation pour graphe interactif
+df_long = phenotype_df.melt(id_vars="Semaine", var_name="Phénotype", value_name="Nombre de cas")
+fig1 = px.line(
+    df_long,
+    x="Semaine",
+    y="Nombre de cas",
+    color="Phénotype",
+    markers=True,
+    title="Evolution des phénotypes par semaine",
+    hover_name="Phénotype",
+    hover_data={"Semaine": True, "Nombre de cas": True}
+)
+fig1.update_layout(xaxis_tickangle=45)
+st.plotly_chart(fig1, use_container_width=True)
 
 st.markdown("---")
 
@@ -34,20 +40,17 @@ antibiotiques = resistance_df.columns[1:]
 
 for ab in antibiotiques:
     st.markdown(f"### {ab}")
-    fig, ax = plt.subplots()
     values = resistance_df[ab]
     dates = resistance_df["Mois"]
     moyenne = values.mean()
     ecart_type = values.std()
     seuil = moyenne + 2 * ecart_type
-    ax.plot(dates, values, marker='o')
-    ax.axhline(seuil, color='red', linestyle='--', label=f'Seuil Alerte ({seuil:.1f})')
-    ax.set_title(f"{ab} - Résistance mensuelle")
-    ax.set_ylabel("Nombre de cas")
-    ax.legend()
-    st.pyplot(fig)
 
-    # Ajout aux alertes si dernière valeur > seuil
+    df_ab = pd.DataFrame({"Date": dates, "Valeur": values})
+    fig = px.line(df_ab, x="Date", y="Valeur", markers=True, title=f"{ab} - Résistance mensuelle")
+    fig.add_hline(y=seuil, line_dash="dash", line_color="red", annotation_text=f"Seuil Alerte ({seuil:.1f})")
+    st.plotly_chart(fig, use_container_width=True)
+
     if values.iloc[-1] > seuil:
         alertes.append({"Antibiotique": ab, "Valeur": values.iloc[-1], "Seuil": seuil})
 
@@ -60,4 +63,3 @@ if alertes:
     st.dataframe(alert_df.style.applymap(lambda x: 'background-color: red' if isinstance(x, (int, float)) and x > 0 else ''))
 else:
     st.success("Aucune alerte actuelle 🎉")
-
