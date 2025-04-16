@@ -36,6 +36,10 @@ st.markdown("---")
 # --- SECTION 2: Evolution hebdomadaire des résistances par antibiotique (courbes) ---
 st.subheader("📈 Evolution hebdomadaire des résistances par antibiotique (%)")
 
+# Sélecteur interactif
+tous_les_antibios = ["Vancomycin", "Teicoplanin", "Gentamycin", "Oxacilline", "Clindamycin", "Linezolid", "Daptomycin"]
+antibiotiques_selectionnes = st.multiselect("Choisir les antibiotiques à afficher :", tous_les_antibios, default=tous_les_antibios)
+
 # Préparation des données
 antibiotiques = ["Vancomycin", "Teicoplanin", "Gentamycin", "Oxacilline", "Clindamycin", "Linezolid", "Daptomycin"]
 df_scn["DATE_PRELEVEMENT"] = pd.to_datetime(df_scn["DATE_PRELEVEMENT"], dayfirst=True, errors="coerce")
@@ -55,6 +59,9 @@ for semaine, group in df_scn.groupby("Semaine"):
 
 df_weekly_resistance = pd.DataFrame(weekly_resistance)
 
+# Filtrage des antibiotiques selon la sélection de l'utilisateur
+df_weekly_resistance = df_weekly_resistance[df_weekly_resistance["Antibiotique"].isin(antibiotiques_selectionnes)]
+
 fig2 = px.line(
     df_weekly_resistance,
     x="Semaine",
@@ -62,11 +69,10 @@ fig2 = px.line(
     color="Antibiotique",
     markers=True,
     title="Taux de résistance hebdomadaire (%) par antibiotique",
-)
-fig2.update_traces(hovertemplate="Semaine : %{x}<br>%{fullData.name} : %{y:.2f}%") par antibiotique",
     hover_name="Antibiotique",
     hover_data={"Semaine": True, "Resistance": ".2f"}
 )
+fig2.update_traces(hovertemplate="Semaine : %{x}<br>%{fullData.name} : %{y:.2f}%")
 fig2.update_layout(xaxis_tickangle=45, yaxis_title="% Résistance")
 st.plotly_chart(fig2, use_container_width=True)
 
