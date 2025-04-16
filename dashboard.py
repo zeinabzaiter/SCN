@@ -6,6 +6,7 @@ import numpy as np
 # Chargement des fichiers de données
 phenotype_df = pd.read_csv("phenotype_weekly.csv")
 resistance_df = pd.read_excel("Tests_Resistances_mensuelles_FINAL.xlsx", engine="openpyxl")
+df_scn = pd.read_excel("SCN filtred.xlsx")
 
 # Titre du Dashboard
 st.title("📊 Dashboard de Suivi des Phénotypes et Résistances Antibiotiques")
@@ -32,13 +33,50 @@ st.plotly_chart(fig1, use_container_width=True)
 
 st.markdown("---")
 
-# --- SECTION 2: Résistances antibiotiques avec seuils d'alerte ---
+# --- SECTION 2: Evolution hebdomadaire des résistances par antibiotique (aires empilées) ---
+st.subheader("📈 Evolution hebdomadaire des résistances par antibiotique (%)")
+
+# Préparation des données
+antibiotiques = ["Vancomycin", "Teicoplanin", "Gentamycin", "Oxacilline", "Clindamycin", "Linezolid", "Daptomycin"]
+df_scn["DATE_PRELEVEMENT"] = pd.to_datetime(df_scn["DATE_PRELEVEMENT"], dayfirst=True, errors="coerce")
+df_scn["Semaine"] = df_scn["DATE_PRELEVEMENT"].dt.to_period("W").apply(lambda r: r.start_time)
+
+weekly_resistance = []
+for semaine, group in df_scn.groupby("Semaine"):
+    data = {"Semaine": semaine}
+    for ab in antibiotiques:
+        total = group[ab].notna().sum()
+        if total > 0:
+            resistant = (group[ab] == "R").sum()
+            data[ab] = resistant / total * 100
+        else:
+            data[ab] = 0
+    weekly_resistance.append(data)
+
+df_weekly_resistance = pd.DataFrame(weekly_resistance)
+df_long_res = df_weekly_resistance.melt(id_vars="Semaine", var_name="Antibiotique", value_name="% Résistance")
+
+fig2 = px.area(
+    df_long_res,
+    x="Semaine",
+    y="% Résistance",
+    color="Antibiotique",
+    title="Taux de résistance hebdomadaire (aires empilées)",
+    groupnorm="percent",
+    hover_name="Antibiotique",
+    hover_data={"Semaine": True, "% Résistance": ".2f"}
+)
+fig2.update_layout(xaxis_tickangle=45)
+st.plotly_chart(fig2, use_container_width=True)
+
+st.markdown("---")
+
+# --- SECTION 3: Résistances antibiotiques avec seuils d'alerte ---
 st.subheader("🦠 Pourcentage de résistance aux antibiotiques (alerte si > moyenne + 2σ)")
 alertes = []
 resistance_df["Mois"] = pd.to_datetime(resistance_df["Mois"], dayfirst=True, errors="coerce")
-antibiotiques = resistance_df.columns[1:]
 
-for ab in antibiotiques:
+for ab in resistance_df.columns[1:]:
     st.markdown(f"### {ab}")
     values = resistance_df[ab]
     dates = resistance_df["Mois"]
@@ -56,7 +94,7 @@ for ab in antibiotiques:
 
 st.markdown("---")
 
-# --- SECTION 3: Tableau des alertes ---
+# --- SECTION 4: Tableau des alertes ---
 st.subheader("🚨 Alertes sur les résistances (valeurs > moyenne + 2σ)")
 if alertes:
     alert_df = pd.DataFrame(alertes)
