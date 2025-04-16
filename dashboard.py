@@ -39,7 +39,8 @@ st.subheader("📈 Evolution hebdomadaire des résistances par antibiotique (%)"
 # Préparation des données
 antibiotiques = ["Vancomycin", "Teicoplanin", "Gentamycin", "Oxacilline", "Clindamycin", "Linezolid", "Daptomycin"]
 df_scn["DATE_PRELEVEMENT"] = pd.to_datetime(df_scn["DATE_PRELEVEMENT"], dayfirst=True, errors="coerce")
-df_scn["Semaine"] = df_scn["DATE_PRELEVEMENT"].dt.to_period("W").apply(lambda r: r.start_time)
+df_scn = df_scn[df_scn["DATE_PRELEVEMENT"].notna()]
+df_scn["Semaine"] = df_scn["DATE_PRELEVEMENT"].dt.to_period("W").dt.start_time
 
 weekly_resistance = []
 for semaine, group in df_scn.groupby("Semaine"):
