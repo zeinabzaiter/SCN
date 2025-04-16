@@ -108,3 +108,38 @@ if alertes:
     st.dataframe(alert_df.style.applymap(lambda x: 'background-color: red' if isinstance(x, (int, float)) and x > 0 else ''))
 else:
     st.success("Aucune alerte actuelle 🎉")
+
+st.markdown("---")
+
+# --- SECTION 5: Détail d’un échantillon par IPP ---
+st.subheader("🔍 Détail d’un échantillon par patient (IPP_PASTEL)")
+
+# Sélection du demandeur et de l'IPP
+unique_demandeurs = df_scn["LIBELLE_DEMANDEUR"].dropna().unique()
+demandeur_selection = st.selectbox("Filtrer par service demandeur :", sorted(unique_demandeurs))
+df_filtered = df_scn[df_scn["LIBELLE_DEMANDEUR"] == demandeur_selection]
+ipp_selection = st.selectbox("Choisir un patient (IPP_PASTEL) :", df_filtered["IPP_PASTEL"].unique())
+df_patient = df_filtered[df_filtered["IPP_PASTEL"] == ipp_selection].copy()
+
+if not df_patient.empty:
+    st.markdown("### Informations générales")
+    info_cols = ["NUM_SPECIMEN", "DATE_PRELEVEMENT", "LIBELLE_DEMANDEUR", "SEXE", "AGE"] if "SEXE" in df_patient.columns and "AGE" in df_patient.columns else ["NUM_SPECIMEN", "DATE_PRELEVEMENT", "LIBELLE_DEMANDEUR"]
+    st.write(df_patient[info_cols].drop_duplicates().reset_index(drop=True))
+
+    st.markdown("### Résultats des antibiotiques")
+    ab_cols = ["Vancomycin", "Teicoplanin", "Gentamycin", "Oxacilline", "Clindamycin", "Linezolid", "Daptomycin"]
+    ab_results = df_patient[ab_cols].reset_index(drop=True)
+
+    def color_result(val):
+        if val == "R":
+            return "background-color: red; color: white"
+        elif val == "S":
+            return "background-color: limegreen; color: white"
+        elif pd.isna(val) or val == "-":
+            return "background-color: orange; color: white"
+        else:
+            return ""
+
+    st.dataframe(ab_results.style.applymap(color_result))
+else:
+    st.info("Aucune donnée trouvée pour cet IPP.")
