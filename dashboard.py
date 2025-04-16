@@ -1,36 +1,63 @@
-
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import matplotlib.pyplot as plt
+import numpy as np
 
-# Chargement des données
-df_resistance = pd.read_csv("weekly_resistance.csv")
-df_phenotypes = pd.read_csv("phenotype_weekly.csv")
+# Chargement des fichiers de données
+phenotype_df = pd.read_csv("phenotype_weekly.csv")
+resistance_df = pd.read_excel("Tests_Resistances_mensuelles_FINAL.xlsx")
 
-st.title("Dashboard de Résistance Antibiotique - SCN (hors aureus)")
+# Titre du Dashboard
+st.title("📊 Dashboard de Suivi des Phénotypes et Résistances Antibiotiques")
 
-# ----- Section 1 : Résistance hebdomadaire -----
-st.header("Évolution hebdomadaire de la résistance")
+st.markdown("---")
 
-ab_selected = st.selectbox("Choisir un antibiotique :", df_resistance["Antibiotique"].unique())
-df_ab = df_resistance[df_resistance["Antibiotique"] == ab_selected]
+# --- SECTION 1: Evolution hebdomadaire des phénotypes ---
+st.subheader("🕰️ Evolution hebdomadaire des phénotypes")
+fig1, ax1 = plt.subplots()
+for col in ["SRM", "SRV", "Wild", "Other"]:
+    ax1.plot(phenotype_df["Semaine"], phenotype_df[col], marker="o", label=col)
+ax1.set_xlabel("Semaine")
+ax1.set_ylabel("Nombre de cas")
+ax1.set_title("Evolution des phénotypes par semaine")
+plt.xticks(rotation=45)
+ax1.legend()
+st.pyplot(fig1)
 
-fig = px.line(df_ab, x="Semaine", y="%R", title=f"% de Résistance à {ab_selected} par semaine",
-              markers=True, color_discrete_sequence=["#EF553B"])
+st.markdown("---")
 
-# Ajouter les alertes
-alertes = df_ab[df_ab["Alerte"] == True]
-fig.add_scatter(x=alertes["Semaine"], y=alertes["%R"],
-                mode="markers", marker=dict(color='red', size=10),
-                name="Alerte")
+# --- SECTION 2: Résistances antibiotiques avec seuils d'alerte ---
+st.subheader("🦠 Pourcentage de résistance aux antibiotiques (alerte si > moyenne + 2σ)")
+alertes = []
+resistance_df["Mois"] = pd.to_datetime(resistance_df["Mois"])
+antibiotiques = resistance_df.columns[1:]
 
-st.plotly_chart(fig, use_container_width=True)
+for ab in antibiotiques:
+    st.markdown(f"### {ab}")
+    fig, ax = plt.subplots()
+    values = resistance_df[ab]
+    dates = resistance_df["Mois"]
+    moyenne = values.mean()
+    ecart_type = values.std()
+    seuil = moyenne + 2 * ecart_type
+    ax.plot(dates, values, marker='o')
+    ax.axhline(seuil, color='red', linestyle='--', label=f'Seuil Alerte ({seuil:.1f})')
+    ax.set_title(f"{ab} - Résistance mensuelle")
+    ax.set_ylabel("Nombre de cas")
+    ax.legend()
+    st.pyplot(fig)
 
-# ----- Section 2 : Phénotypes -----
-Correction des chemins de fichiers CSV
+    # Ajout aux alertes si dernière valeur > seuil
+    if values.iloc[-1] > seuil:
+        alertes.append({"Antibiotique": ab, "Valeur": values.iloc[-1], "Seuil": seuil})
 
-st.header("Phénotypes SCN par semaine")
+st.markdown("---")
 
-df_phenotypes = df_phenotypes.set_index("Semaine")
-fig2 = px.area(df_phenotypes, title="Distribution des phénotypes SCN (SRM, SRV, Wild, Other)")
-st.plotly_chart(fig2, use_container_width=True)
+# --- SECTION 3: Tableau des alertes ---
+st.subheader("🚨 Alertes sur les résistances (valeurs > moyenne + 2σ)")
+if alertes:
+    alert_df = pd.DataFrame(alertes)
+    st.dataframe(alert_df.style.applymap(lambda x: 'background-color: red' if isinstance(x, (int, float)) and x > 0 else ''))
+else:
+    st.success("Aucune alerte actuelle 🎉")
+
