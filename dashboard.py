@@ -62,6 +62,8 @@ fig2 = px.line(
     color="Antibiotique",
     markers=True,
     title="Taux de résistance hebdomadaire (%) par antibiotique",
+)
+fig2.update_traces(hovertemplate="Semaine : %{x}<br>%{fullData.name} : %{y:.2f}%") par antibiotique",
     hover_name="Antibiotique",
     hover_data={"Semaine": True, "Resistance": ".2f"}
 )
