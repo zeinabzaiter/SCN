@@ -33,7 +33,7 @@ st.plotly_chart(fig1, use_container_width=True)
 
 st.markdown("---")
 
-# --- SECTION 2: Evolution hebdomadaire des résistances par antibiotique (aires empilées) ---
+# --- SECTION 2: Evolution hebdomadaire des résistances par antibiotique (courbes) ---
 st.subheader("📈 Evolution hebdomadaire des résistances par antibiotique (%)")
 
 # Préparation des données
@@ -49,25 +49,23 @@ for semaine, group in df_scn.groupby("Semaine"):
         total = group[ab].notna().sum()
         if total > 0:
             resistant = (group[ab] == "R").sum()
-            data[ab] = resistant / total * 100
-        else:
-            data[ab] = 0
-    weekly_resistance.append(data)
+            data["Resistance"] = resistant / total * 100
+            data["Antibiotique"] = ab
+            weekly_resistance.append(data.copy())
 
 df_weekly_resistance = pd.DataFrame(weekly_resistance)
-df_long_res = df_weekly_resistance.melt(id_vars="Semaine", var_name="Antibiotique", value_name="% Résistance")
 
-fig2 = px.area(
-    df_long_res,
+fig2 = px.line(
+    df_weekly_resistance,
     x="Semaine",
-    y="% Résistance",
+    y="Resistance",
     color="Antibiotique",
-    title="Taux de résistance hebdomadaire (aires empilées)",
-    groupnorm="percent",
+    markers=True,
+    title="Taux de résistance hebdomadaire (%) par antibiotique",
     hover_name="Antibiotique",
-    hover_data={"Semaine": True, "% Résistance": ".2f"}
+    hover_data={"Semaine": True, "Resistance": ".2f"}
 )
-fig2.update_layout(xaxis_tickangle=45)
+fig2.update_layout(xaxis_tickangle=45, yaxis_title="% Résistance")
 st.plotly_chart(fig2, use_container_width=True)
 
 st.markdown("---")
