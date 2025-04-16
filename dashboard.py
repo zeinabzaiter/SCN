@@ -35,7 +35,7 @@ st.markdown("---")
 # --- SECTION 2: Résistances antibiotiques avec seuils d'alerte ---
 st.subheader("🦠 Pourcentage de résistance aux antibiotiques (alerte si > moyenne + 2σ)")
 alertes = []
-resistance_df["Mois"] = pd.to_datetime(resistance_df["Mois"])
+resistance_df["Mois"] = pd.to_datetime(resistance_df["Mois"], dayfirst=True, errors="coerce")
 antibiotiques = resistance_df.columns[1:]
 
 for ab in antibiotiques:
