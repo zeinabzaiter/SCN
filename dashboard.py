@@ -76,6 +76,29 @@ fig2.update_traces(hovertemplate="Semaine : %{x}<br>%{fullData.name} : %{y:.2f}%
 fig2.update_layout(xaxis_tickangle=45, yaxis_title="% Résistance")
 st.plotly_chart(fig2, use_container_width=True)
 
+# --- DÉTECTION DE TENDANCE ---
+st.markdown("### 📈 Tendance de la résistance par antibiotique")
+tendance_messages = []
+for ab in antibiotiques_selectionnes:
+    df_ab = df_weekly_resistance[df_weekly_resistance["Antibiotique"] == ab].copy()
+    if len(df_ab) >= 2:
+        x = np.arange(len(df_ab))
+        y = df_ab["Resistance"].values
+        coef = np.polyfit(x, y, 1)[0]  # pente de la régression linéaire
+
+        if coef > 0.5:
+            tendance_messages.append(f"🔺 Résistance en **hausse** pour {ab} (pente : {coef:.2f})")
+        elif coef < -0.5:
+            tendance_messages.append(f"🔻 Résistance en **baisse** pour {ab} (pente : {coef:.2f})")
+        else:
+            tendance_messages.append(f"➖ Résistance **stable** pour {ab} (pente : {coef:.2f})")
+
+if tendance_messages:
+    for msg in tendance_messages:
+        st.markdown(msg)
+else:
+    st.info("Pas assez de données pour détecter une tendance.")
+
 st.markdown("---")
 
 # --- SECTION 3: Résistances antibiotiques avec seuils d'alerte ---
