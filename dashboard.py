@@ -121,3 +121,40 @@ if co_resistances:
     st.dataframe(pd.DataFrame(co_resistances))
 else:
     st.info("Pas de données suffisantes pour la co-résistance.")
+
+# --- SECTION 6: Fiche patient par IPP et demandeur ---
+st.markdown("---")
+st.subheader("🧾 Fiche détaillée par patient (IPP_PASTEL)")
+
+# Filtrer par service demandeur
+demandeurs = df_scn["LIBELLE_DEMANDEUR"].dropna().unique()
+demandeur_selection = st.selectbox("Filtrer par service :", sorted(demandeurs))
+df_filtered = df_scn[df_scn["LIBELLE_DEMANDEUR"] == demandeur_selection]
+
+# Sélection d'un IPP dans ce service
+ipps = df_filtered["IPP_PASTEL"].unique()
+ipp_selection = st.selectbox("Choisir un patient (IPP_PASTEL) :", ipps)
+df_patient = df_filtered[df_filtered["IPP_PASTEL"] == ipp_selection].copy()
+
+if not df_patient.empty:
+    st.markdown("### Informations générales")
+    info_cols = ["NUM_SPECIMEN", "DATE_PRELEVEMENT", "LIBELLE_DEMANDEUR"]
+    st.write(df_patient[info_cols].drop_duplicates().reset_index(drop=True))
+
+    st.markdown("### Résultats des antibiotiques")
+    ab_cols = ["Vancomycin", "Teicoplanin", "Gentamycin", "Oxacilline", "Clindamycin", "Linezolid", "Daptomycin"]
+    ab_results = df_patient[ab_cols].reset_index(drop=True)
+
+    def color_result(val):
+        if val == "R":
+            return "background-color: red; color: white"
+        elif val == "S":
+            return "background-color: limegreen; color: white"
+        elif pd.isna(val) or val == "-":
+            return "background-color: orange; color: white"
+        else:
+            return ""
+
+    st.dataframe(ab_results.style.applymap(color_result))
+else:
+    st.info("Aucune donnée trouvée pour cet IPP.")
